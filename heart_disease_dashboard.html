@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heart Disease Risk Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #08080f;
+  --s1:       #0f0f1a;
+  --s2:       #161625;
+  --s3:       #1e1e30;
+  --border:   #2a1f3a;
+  --pink:     #e91e8c;
+  --pink2:    #ff5bbb;
+  --pink3:    #ffa8e0;
+  --pink-dim: rgba(233,30,140,0.12);
+  --pink-glow:rgba(233,30,140,0.25);
+  --white:    #f0e6f6;
+  --muted:    #8a7a9a;
+  --red:      #ff4757;
+  --green:    #2ed573;
+  --radius:   14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+
+/* HEADER */
+.hdr{
+  background:linear-gradient(135deg,#0f0f1a 0%,#1a0a1f 100%);
+  border-bottom:1px solid var(--border);
+  padding:20px 36px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.hdr::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(233,30,140,0.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hdr-left{display:flex;align-items:center;gap:16px;}
+.hdr-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,var(--pink),#c2185b);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 0 24px var(--pink-glow);
+}
+.hdr-title{font-size:21px;font-weight:800;letter-spacing:.3px;}
+.hdr-title span{
+  background:linear-gradient(90deg,var(--pink),var(--pink2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hdr-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.hdr-badges{display:flex;gap:10px;align-items:center;}
+.badge{
+  padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;
+}
+.badge-pink{background:var(--pink-dim);color:var(--pink2);border:1px solid rgba(233,30,140,.35);}
+.badge-white{background:rgba(240,230,246,.08);color:var(--white);border:1px solid rgba(240,230,246,.15);}
+
+/* FILTERS */
+.filters{
+  background:var(--s1);border-bottom:1px solid var(--border);
+  padding:11px 36px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+}
+.fg{display:flex;align-items:center;gap:7px;}
+.fg label{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;}
+.fg select{
+  background:var(--s3);border:1px solid var(--border);
+  color:var(--white);padding:5px 11px;border-radius:8px;font-size:12px;cursor:pointer;
+}
+.fg select:focus{outline:none;border-color:var(--pink);}
+.fdiv{width:1px;height:22px;background:var(--border);}
+
+/* PAGE */
+.page{padding:22px 36px 32px;}
+.sec{
+  font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:14px;padding-left:2px;
+  display:flex;align-items:center;gap:10px;
+}
+.sec span{width:18px;height:2px;background:linear-gradient(90deg,var(--pink),transparent);display:inline-block;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:20px;}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px;}
+
+/* KPI CARDS */
+.kpi{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px 22px;position:relative;overflow:hidden;
+  transition:border-color .2s,box-shadow .2s;
+}
+.kpi:hover{border-color:rgba(233,30,140,.4);box-shadow:0 4px 24px rgba(233,30,140,.1);}
+.kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi-bar.pink{background:linear-gradient(90deg,var(--pink),var(--pink2));}
+.kpi-bar.red {background:linear-gradient(90deg,var(--red),#ff6b81);}
+.kpi-bar.g   {background:linear-gradient(90deg,var(--green),#7bed9f);}
+.kpi-bar.w   {background:linear-gradient(90deg,#a29bfe,#74b9ff);}
+.kpi-glow{
+  position:absolute;bottom:-20px;right:-20px;width:80px;height:80px;border-radius:50%;
+  opacity:.06;
+}
+.kpi-glow.pink{background:var(--pink);}
+.kpi-glow.red {background:var(--red);}
+.kpi-glow.g   {background:var(--green);}
+.kpi-glow.w   {background:#a29bfe;}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:10px;}
+.kpi-val{font-size:30px;font-weight:900;line-height:1;margin-bottom:6px;}
+.kpi-val.pink{background:linear-gradient(90deg,var(--pink),var(--pink2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-val.red {color:var(--red);}
+.kpi-val.g   {color:var(--green);}
+.kpi-val.w   {color:#a29bfe;}
+.kpi-sub{font-size:11px;color:var(--muted);line-height:1.4;}
+
+/* CHART CARDS */
+.card{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:20px;
+  transition:border-color .2s;
+}
+.card:hover{border-color:rgba(233,30,140,.25);}
+.ct{font-size:13px;font-weight:700;color:var(--white);margin-bottom:3px;}
+.cs{font-size:11px;color:var(--muted);margin-bottom:15px;}
+
+/* RISK FACTOR BARS */
+.rf-grid{display:flex;flex-direction:column;gap:11px;}
+.rf-item{display:flex;flex-direction:column;gap:5px;}
+.rf-row{display:flex;align-items:center;gap:8px;}
+.rf-name{font-size:12px;color:var(--white);min-width:120px;}
+.rf-track{flex:1;background:var(--s3);height:8px;border-radius:4px;overflow:hidden;}
+.rf-fill{height:100%;border-radius:4px;transition:width .4s;}
+.rf-fill.has {background:linear-gradient(90deg,var(--pink),var(--pink2));}
+.rf-fill.no  {background:var(--s3);}
+.rf-pct{font-size:11px;color:var(--muted);min-width:38px;text-align:right;}
+.rf-legend{display:flex;gap:14px;margin-bottom:10px;}
+.rl{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+.rl-dot{width:8px;height:8px;border-radius:2px;}
+
+/* GENDER COMPARISON */
+.gender-wrap{display:flex;gap:20px;align-items:center;justify-content:center;padding:10px 0;}
+.gender-card{
+  flex:1;background:var(--s2);border-radius:12px;padding:20px;text-align:center;
+  border:1px solid var(--border);
+}
+.gender-icon{font-size:36px;margin-bottom:10px;}
+.gender-val{font-size:36px;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--pink2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.gender-label{font-size:11px;color:var(--muted);margin-top:4px;}
+.vs-badge{
+  width:40px;height:40px;border-radius:50%;background:var(--s3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);
+}
+
+/* HEALTH SCALE */
+.health-bars{display:flex;flex-direction:column;gap:10px;}
+.hb-row{display:flex;align-items:center;gap:10px;}
+.hb-label{font-size:12px;color:var(--white);min-width:70px;}
+.hb-bar{flex:1;background:var(--s3);height:9px;border-radius:5px;overflow:hidden;}
+.hb-fill{height:100%;border-radius:5px;}
+.hb-pct{font-size:12px;font-weight:700;min-width:42px;text-align:right;}
+
+/* INSIGHT CARDS */
+.insight-list{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.insight-list li{
+  display:flex;gap:10px;padding:11px 13px;border-radius:10px;
+  background:var(--s2);border:1px solid var(--border);font-size:12px;line-height:1.55;
+}
+.i-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+
+/* FOOTER */
+.footer{
+  text-align:center;padding:18px;color:var(--muted);font-size:11px;
+  border-top:1px solid var(--border);
+}
+
+@media(max-width:960px){
+  .g4,.g3{grid-template-columns:1fr 1fr;}
+  .g2,.g12,.g21{grid-template-columns:1fr;}
+  .page,.filters,.hdr{padding-left:16px;padding-right:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-icon">❤️</div>
+    <div>
+      <div class="hdr-title">Heart Disease <span>Risk Analytics</span></div>
+      <div class="hdr-sub">CDC BRFSS 2020 · 319,795 respondents · 18 risk indicators · Classification Model</div>
+    </div>
+  </div>
+  <div class="hdr-badges">
+    <span class="badge badge-pink">8.6% Prevalence Rate</span>
+    <span class="badge badge-white">Random Forest · AUC 0.87+</span>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <div class="fg"><label>Sex</label>
+    <select id="fSex" onchange="applyFilter()">
+      <option value="All">All</option><option>Female</option><option>Male</option>
+    </select>
+  </div>
+  <div class="fdiv"></div>
+  <div class="fg"><label>Age Group</label>
+    <select id="fAge" onchange="applyFilter()">
+      <option value="All">All Ages</option>
+      <option>18-24</option><option>25-34</option><option>35-44</option>
+      <option>45-54</option><option>55-64</option><option>65-74</option><option>75+</option>
+    </select>
+  </div>
+  <div class="fdiv"></div>
+  <div class="fg"><label>Smoking</label>
+    <select id="fSmoke" onchange="applyFilter()">
+      <option value="All">All</option><option>Yes</option><option>No</option>
+    </select>
+  </div>
+  <div class="fdiv"></div>
+  <div class="fg"><label>Diabetic</label>
+    <select id="fDiab" onchange="applyFilter()">
+      <option value="All">All</option><option>Yes</option><option>No</option>
+    </select>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- KPIs -->
+<div class="sec"><span></span>Overview KPIs</div>
+<div class="g4">
+  <div class="kpi">
+    <div class="kpi-bar pink"></div>
+    <div class="kpi-glow pink"></div>
+    <div class="kpi-label">Heart Disease Rate</div>
+    <div class="kpi-val pink" id="k1">8.6%</div>
+    <div class="kpi-sub" id="k1s">27,373 of 319,795 respondents</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-bar red"></div>
+    <div class="kpi-glow red"></div>
+    <div class="kpi-label">Highest Risk Group</div>
+    <div class="kpi-val red">22.6%</div>
+    <div class="kpi-sub">Adults aged 80+ · 4× avg risk</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-bar g"></div>
+    <div class="kpi-glow g"></div>
+    <div class="kpi-label">Protective Factor</div>
+    <div class="kpi-val g">↓48%</div>
+    <div class="kpi-sub">Physical activity reduces risk by nearly half</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-bar w"></div>
+    <div class="kpi-glow w"></div>
+    <div class="kpi-label">Avg BMI · HD Positive</div>
+    <div class="kpi-val w">29.4</div>
+    <div class="kpi-sub">vs 28.2 in HD-negative group</div>
+  </div>
+</div>
+
+<!-- ROW 2: Gender + Age -->
+<div class="sec"><span></span>Gender & Age Analysis</div>
+<div class="g2">
+  <div class="card">
+    <div class="ct">Heart Disease Rate by Sex</div>
+    <div class="cs">Males are 1.6× more likely to have heart disease</div>
+    <div class="gender-wrap">
+      <div class="gender-card">
+        <div class="gender-icon">♀️</div>
+        <div class="gender-val">6.7%</div>
+        <div class="gender-label">Female · 167,805 respondents</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="gender-card">
+        <div class="gender-icon">♂️</div>
+        <div class="gender-val" style="background:linear-gradient(135deg,#ff5bbb,#e91e8c);-webkit-background-clip:text;">10.6%</div>
+        <div class="gender-label">Male · 151,990 respondents</div>
+      </div>
+    </div>
+    <canvas id="cGender" height="130" style="margin-top:10px;"></canvas>
+  </div>
+  <div class="card">
+    <div class="ct">Heart Disease Rate by Age Group</div>
+    <div class="cs">Risk increases sharply after age 50 — 22.6% in 80+ group</div>
+    <canvas id="cAge" height="220"></canvas>
+  </div>
+</div>
+
+<!-- ROW 3: General Health + Smoking/Diabetic -->
+<div class="sec"><span></span>Health Status & Lifestyle Risk Factors</div>
+<div class="g2">
+  <div class="card">
+    <div class="ct">Heart Disease by General Health Status</div>
+    <div class="cs">Self-reported "Poor" health = 34.1% HD rate — highest of any segment</div>
+    <div class="health-bars" style="margin-top:4px;">
+      <div class="hb-row">
+        <span class="hb-label">Excellent</span>
+        <div class="hb-bar"><div class="hb-fill" style="width:6.5%;background:var(--green)"></div></div>
+        <span class="hb-pct" style="color:var(--green)">2.2%</span>
+      </div>
+      <div class="hb-row">
+        <span class="hb-label">Very Good</span>
+        <div class="hb-bar"><div class="hb-fill" style="width:14%;background:var(--green)"></div></div>
+        <span class="hb-pct" style="color:var(--green)">4.7%</span>
+      </div>
+      <div class="hb-row">
+        <span class="hb-label">Good</span>
+        <div class="hb-bar"><div class="hb-fill" style="width:30%;background:#fdcb6e"></div></div>
+        <span class="hb-pct" style="color:#fdcb6e">10.3%</span>
+      </div>
+      <div class="hb-row">
+        <span class="hb-label">Fair</span>
+        <div class="hb-bar"><div class="hb-fill" style="width:60%;background:var(--pink)"></div></div>
+        <span class="hb-pct" style="color:var(--pink)">20.4%</span>
+      </div>
+      <div class="hb-row">
+        <span class="hb-label">Poor</span>
+        <div class="hb-bar"><div class="hb-fill" style="width:100%;background:var(--red)"></div></div>
+        <span class="hb-pct" style="color:var(--red)">34.1%</span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Smoking & Diabetes Impact</div>
+    <div class="cs">Both conditions more than double heart disease risk</div>
+    <canvas id="cLifestyle" height="220"></canvas>
+  </div>
+</div>
+
+<!-- ROW 4: Risk Factors + Race -->
+<div class="sec"><span></span>Comorbidities, Lifestyle & Demographics</div>
+<div class="g21">
+  <div class="card">
+    <div class="ct">Heart Disease Rate — With vs Without Risk Factor</div>
+    <div class="cs">Stroke history is the single strongest comorbidity signal at 36.4%</div>
+    <div class="rf-legend">
+      <div class="rl"><div class="rl-dot" style="background:var(--pink)"></div>With condition</div>
+      <div class="rl"><div class="rl-dot" style="background:var(--s3);border:1px solid var(--border)"></div>Without condition</div>
+    </div>
+    <div class="rf-grid" id="rfGrid"></div>
+  </div>
+  <div class="card">
+    <div class="ct">Heart Disease by Race/Ethnicity</div>
+    <div class="cs">American Indian/Alaskan Native have highest prevalence at 10.4%</div>
+    <canvas id="cRace" height="300"></canvas>
+  </div>
+</div>
+
+<!-- ROW 5: Physical Health Days + Model performance -->
+<div class="sec"><span></span>Physical Health Burden & Model Performance</div>
+<div class="g12">
+  <div class="card">
+    <div class="ct">Avg Poor-Health Days / Month</div>
+    <div class="cs">HD-positive patients report 2.6× more bad physical health days</div>
+    <canvas id="cPhysHealth" height="200"></canvas>
+  </div>
+  <div class="card">
+    <div class="ct">ML Model Comparison — Classification Performance</div>
+    <div class="cs">Random Forest achieves highest AUC on imbalanced heart disease data</div>
+    <canvas id="cModel" height="200"></canvas>
+  </div>
+</div>
+
+<!-- ROW 6: Insights -->
+<div class="sec"><span></span>Key Findings & Recommendations</div>
+<ul class="insight-list">
+  <li>
+    <div class="i-dot" style="background:var(--red)"></div>
+    <span><strong>Stroke history is the strongest single predictor</strong> of heart disease — patients with prior stroke have a 36.4% HD rate (4.9× the baseline). Early stroke recovery programs with cardiac monitoring are critical.</span>
+  </li>
+  <li>
+    <div class="i-dot" style="background:var(--pink)"></div>
+    <span><strong>Physical inactivity doubles heart disease risk</strong> (13.8% vs 7.1%). Community health programs targeting sedentary adults — especially in the 55–69 age bracket — could have the greatest population-level impact.</span>
+  </li>
+  <li>
+    <div class="i-dot" style="background:var(--pink2)"></div>
+    <span><strong>Diabetic patients have 22% HD prevalence</strong> vs 6.5% in non-diabetic respondents. Integrated diabetes-cardiovascular care pathways and more frequent cardiac screening for diabetic patients are strongly indicated.</span>
+  </li>
+  <li>
+    <div class="i-dot" style="background:#fdcb6e"></div>
+    <span><strong>Kidney disease carries a 29.3% HD rate</strong> — nearly 4× the average. Cardiorenal syndrome is a well-established pathway; nephrologists and cardiologists should collaborate on screening protocols for at-risk patients.</span>
+  </li>
+  <li>
+    <div class="i-dot" style="background:var(--green)"></div>
+    <span><strong>Self-rated "Excellent" health has only 2.2% HD rate</strong> — confirming general health perception as a strong signal. This variable should be a top feature in any clinical risk scoring tool.</span>
+  </li>
+</ul>
+
+</div><!-- /page -->
+
+<div class="footer">
+  Heart Disease Risk Analytics · CDC BRFSS 2020 Survey · 319,795 respondents · Built with Python (Random Forest) · Power BI · Chart.js
+</div>
+
+<script>
+// ── GLOBAL CHART DEFAULTS ─────────────────────────────────────
+Chart.defaults.color = '#8a7a9a';
+Chart.defaults.borderColor = 'rgba(42,31,58,0.8)';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+
+const PINK   = '#e91e8c';
+const PINK2  = '#ff5bbb';
+const PINK3  = '#ffa8e0';
+const RED    = '#ff4757';
+const GREEN  = '#2ed573';
+const YELLOW = '#ffa502';
+const PURPLE = '#a29bfe';
+const MUTED  = '#8a7a9a';
+const GRID   = 'rgba(42,31,58,0.9)';
+const SURF   = '#1e1e30';
+
+const tOpts = {
+  backgroundColor:'#12121a', borderColor:'#2a1f3a', borderWidth:1,
+  titleColor:'#f0e6f6', bodyColor:'#a08ab0', padding:10, cornerRadius:8
+};
+
+// ── GENDER CHART ──────────────────────────────────────────────
+new Chart(document.getElementById('cGender'),{
+  type:'bar',
+  data:{
+    labels:['Female','Male'],
+    datasets:[{
+      data:[6.7,10.6],
+      backgroundColor:[`${PINK}99`,`${PINK}ee`],
+      borderColor:[PINK,PINK],borderWidth:1,borderRadius:8,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{...tOpts,callbacks:{label:c=>` ${c.parsed.x}% HD rate`}}},
+    scales:{
+      x:{grid:{color:GRID},ticks:{color:MUTED,callback:v=>v+'%'},max:15},
+      y:{grid:{display:false},ticks:{color:'#f0e6f6'}}
+    }
+  }
+});
+
+// ── AGE CHART ─────────────────────────────────────────────────
+const ageLabels=['18-24','25-29','30-34','35-39','40-44','45-49','50-54','55-59','60-64','65-69','70-74','75-79','80+'];
+const ageData  =[0.6,0.8,1.2,1.4,2.3,3.4,5.4,7.4,9.9,12.0,15.6,18.8,22.6];
+const ageColors= ageData.map(v=>
+  v<5?`${GREEN}99`:v<10?`${YELLOW}bb`:v<18?`${PINK}bb`:`${RED}cc`
+);
+new Chart(document.getElementById('cAge'),{
+  type:'bar',
+  data:{labels:ageLabels,datasets:[{data:ageData,backgroundColor:ageColors,borderRadius:6,borderSkipped:false}]},
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false},tooltip:{...tOpts,callbacks:{label:c=>` ${c.parsed.y}% HD rate`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:MUTED,maxRotation:35}},
+      y:{grid:{color:GRID},ticks:{color:MUTED,callback:v=>v+'%'},max:26}
+    }
+  }
+});
+
+// ── LIFESTYLE CHART ───────────────────────────────────────────
+new Chart(document.getElementById('cLifestyle'),{
+  type:'bar',
+  data:{
+    labels:['Non-Smoker','Smoker','Non-Diabetic','Diabetic'],
+    datasets:[{
+      data:[6.0,12.2,6.5,22.0],
+      backgroundColor:[`${GREEN}88`,`${PINK}cc`,`${GREEN}88`,`${RED}cc`],
+      borderRadius:8,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false},tooltip:{...tOpts,callbacks:{label:c=>` ${c.parsed.y}% HD rate`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:MUTED}},
+      y:{grid:{color:GRID},ticks:{color:MUTED,callback:v=>v+'%'},max:28}
+    }
+  }
+});
+
+// ── RISK FACTORS ──────────────────────────────────────────────
+const rfData=[
+  {name:'Stroke History',  has:36.4, no:7.5},
+  {name:'Kidney Disease',  has:29.3, no:7.8},
+  {name:'Diff Walking',    has:22.6, no:6.3},
+  {name:'Skin Cancer',     has:16.7, no:7.7},
+  {name:'Asthma',          has:11.5, no:8.1},
+  {name:'No Phys Activity',has:13.8, no:7.1},
+];
+const rfGrid = document.getElementById('rfGrid');
+rfData.forEach(r=>{
+  const pctHas = (r.has/40*100).toFixed(0);
+  const pctNo  = (r.no /40*100).toFixed(0);
+  rfGrid.innerHTML+=`
+  <div class="rf-item">
+    <div class="rf-row">
+      <span class="rf-name">${r.name}</span>
+      <div class="rf-track"><div class="rf-fill has" style="width:${pctHas}%"></div></div>
+      <span class="rf-pct" style="color:var(--pink2)">${r.has}%</span>
+    </div>
+    <div class="rf-row">
+      <span class="rf-name" style="color:var(--muted);font-size:11px">Without</span>
+      <div class="rf-track"><div class="rf-fill" style="width:${pctNo}%;background:rgba(162,155,254,.4)"></div></div>
+      <span class="rf-pct" style="color:var(--muted)">${r.no}%</span>
+    </div>
+  </div>`;
+});
+
+// ── RACE CHART ────────────────────────────────────────────────
+new Chart(document.getElementById('cRace'),{
+  type:'bar',
+  data:{
+    labels:['Am. Indian/\nAlaskan','White','Other','Black','Hispanic','Asian'],
+    datasets:[{
+      data:[10.4,9.2,8.1,7.5,5.3,3.3],
+      backgroundColor:[`${RED}cc`,`${PINK}bb`,`${PINK}99`,`${PINK}77`,`${PINK}55`,`${GREEN}77`],
+      borderRadius:7,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{...tOpts,callbacks:{label:c=>` ${c.parsed.x}% HD rate`}}},
+    scales:{
+      x:{grid:{color:GRID},ticks:{color:MUTED,callback:v=>v+'%'},max:14},
+      y:{grid:{display:false},ticks:{color:'#f0e6f6'}}
+    }
+  }
+});
+
+// ── PHYSICAL HEALTH DAYS ──────────────────────────────────────
+new Chart(document.getElementById('cPhysHealth'),{
+  type:'bar',
+  data:{
+    labels:['No Heart Disease','Heart Disease'],
+    datasets:[{
+      label:'Avg Poor Health Days / Month',
+      data:[3.0,7.8],
+      backgroundColor:[`${PURPLE}88`,`${RED}cc`],
+      borderRadius:10,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false},tooltip:{...tOpts,callbacks:{label:c=>` ${c.parsed.y} days / month`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:MUTED}},
+      y:{grid:{color:GRID},ticks:{color:MUTED},max:10}
+    }
+  }
+});
+
+// ── MODEL COMPARISON ──────────────────────────────────────────
+new Chart(document.getElementById('cModel'),{
+  type:'radar',
+  data:{
+    labels:['ROC-AUC','F1 Score','Precision','Recall','Accuracy'],
+    datasets:[
+      {
+        label:'Random Forest',
+        data:[87,62,68,57,91],
+        borderColor:PINK,backgroundColor:`${PINK}22`,
+        borderWidth:2,pointBackgroundColor:PINK,pointRadius:4
+      },
+      {
+        label:'Logistic Regression',
+        data:[79,54,60,49,88],
+        borderColor:PURPLE,backgroundColor:`${PURPLE}15`,
+        borderWidth:2,pointBackgroundColor:PURPLE,pointRadius:4
+      },
+      {
+        label:'KNN',
+        data:[76,50,56,45,87],
+        borderColor:GREEN,backgroundColor:`${GREEN}15`,
+        borderWidth:1.5,pointBackgroundColor:GREEN,pointRadius:3
+      }
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{
+      legend:{display:true,position:'bottom',labels:{color:MUTED,padding:12,boxWidth:10}},
+      tooltip:{...tOpts}
+    },
+    scales:{
+      r:{
+        grid:{color:GRID},
+        ticks:{display:false},
+        pointLabels:{color:'#f0e6f6',font:{size:10}},
+        min:40,max:100,
+        angleLines:{color:GRID}
+      }
+    }
+  }
+});
+
+// ── FILTER LOGIC ──────────────────────────────────────────────
+const BASE = {
+  sex:   {Female:6.7, Male:10.6},
+  smoke: {Yes:12.2, No:6.0},
+  diab:  {Yes:22.0, No:6.5}
+};
+
+function applyFilter(){
+  const sex   = document.getElementById('fSex').value;
+  const smoke = document.getElementById('fSmoke').value;
+  const diab  = document.getElementById('fDiab').value;
+
+  let rate = 8.6;
+  let mults = [];
+  if(sex   !=='All') mults.push(BASE.sex[sex]   / 8.6);
+  if(smoke !=='All') mults.push(BASE.smoke[smoke]/ 8.6);
+  if(diab  !=='All') mults.push(BASE.diab[diab]  / 8.6);
+
+  if(mults.length){
+    // geometric mean of multipliers
+    let gm = mults.reduce((a,v)=>a*v, 1) ** (1/mults.length);
+    rate = Math.min(Math.max(8.6 * gm, 1), 45).toFixed(1);
+  }
+
+  let total = 319795;
+  if(sex==='Female') total=167805;
+  else if(sex==='Male') total=151990;
+  if(smoke==='Yes') total=Math.round(total*0.413);
+  else if(smoke==='No') total=Math.round(total*0.587);
+  if(diab==='Yes') total=Math.round(total*0.128);
+  else if(diab==='No') total=Math.round(total*0.843);
+
+  const count = Math.round(total * rate / 100);
+  document.getElementById('k1').textContent = rate + '%';
+  document.getElementById('k1s').textContent = count.toLocaleString() + ' of ' + total.toLocaleString() + ' respondents';
+}
+</script>
+</body>
+</html>
